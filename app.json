@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "skainet",
+    "slug": "prototype",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/sn_logo-removebg-preview.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000" 
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arsalan2206.prototype"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/ball_resize.png",
+        "backgroundColor": "#000000" 
+      },
+      "package": "com.arsalan2206.prototype"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "sdkVersion": "49.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "529f37ae-74a6-48e1-96b5-25db6f1f6f4f"
+      }
+    }
+  },
+  "name": "prototype"
+}
