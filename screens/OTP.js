@@ -43,7 +43,7 @@ const OTP = ({ navigation ,route}) => {
 
     try {
       const response = await axios.post(
-        'https://api.skainet.ai/auth/code-verification',
+        'https://api.ilmoirfan.com/auth/code-verification',
         {
           email: email, 
           code: fullOTP, 

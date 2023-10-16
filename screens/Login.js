@@ -13,7 +13,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import Logo from "../components/Logo";
 import axios from "axios";
 
+
 const Login = ({ navigation }) => {
+  console.log("hello");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [Err, setErr] = useState("");
@@ -23,10 +25,14 @@ const Login = ({ navigation }) => {
     try {
       setLoading(true);
 
-      const response = await axios.post("https://api.skainet.ai/auth/login", {
-        email: email,
-        password: password,
-      });
+      const response = await axios.post(
+        "https://api.ilmoirfan.com/auth/login",
+        {
+          email: email,
+          password: password,
+        }
+       
+      );
       const authToken = response.data.token;
 
       await AsyncStorage.setItem("authToken", authToken);

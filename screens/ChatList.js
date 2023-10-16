@@ -11,7 +11,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import User from "../components/User";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Updated import
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 const ChatList = ({ navigation }) => {
   const [userData , setUserData] = useState([])
@@ -23,12 +23,12 @@ const [filteredChatData, setFilteredChatData] = useState([]);
     const fetchUserDetails = async () => {
       const authToken = await AsyncStorage.getItem('authToken');
 
-      const response = await fetch('https://api.skainet.ai/auth/me', {
+      const response = await fetch('https://api.ilmoirfan.com/auth/me', {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
       });
-      const chatResponse = await fetch('https://api.skainet.ai/chats/get_user_chats', {
+      const chatResponse = await fetch('https://api.ilmoirfan.com/chats/get_user_chats', {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
@@ -133,9 +133,8 @@ const [filteredChatData, setFilteredChatData] = useState([]);
         <User
           username={item.title}
           img={userData.avatar}
-          lastText={"hi"} // You can replace this with the appropriate data
-         
-          seen={false} // You can replace this with the appropriate data
+          lastText={"hi"} 
+          seen={false}
         />
       </TouchableOpacity>
     </>

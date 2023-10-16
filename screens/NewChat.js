@@ -10,7 +10,7 @@ const NewChat = ({ navigation, route }) => {
   const handleCreateChat = () => {
     setIsLoading(true); // Set loading to true while creating chat
 
-    const ws = new WebSocket("wss://api.skainet.ai/ws/chat/abc/");
+    const ws = new WebSocket("wss://api.ilmoirfan.com/ws/chat/abc/");
     ws.onopen = () => {
       ws.send(
         JSON.stringify({

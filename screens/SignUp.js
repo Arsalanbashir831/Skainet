@@ -27,7 +27,7 @@ const SignUp = ({ navigation }) => {
         setLoading(true); // Start loading animation
 
         const response = await axios.post(
-          'https://api.skainet.ai/auth/email-signup',
+          'https://api.ilmoirfan.com/auth/email-signup',
           {
             email: email,
             first_name: firstName,

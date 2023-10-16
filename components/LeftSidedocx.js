@@ -3,7 +3,7 @@ import { View, Text, ImageBackground, Image, SafeAreaView, StyleSheet } from 're
 import { MaterialIcons } from "@expo/vector-icons";
 import { Feather } from '@expo/vector-icons'; 
 import { AntDesign } from '@expo/vector-icons';
-export default LeftSidePdf = ({ lastText, img ,avatar }) => {
+export default LeftSidedocx = ({ lastText, img ,avatar }) => {
 
     const source = require('../assets/ball.png');
     return (
