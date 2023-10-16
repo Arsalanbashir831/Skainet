@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import {
   View,
   Text,
@@ -12,12 +12,12 @@ import {
   Image,
 } from "react-native";
 import HeaderChatBox from "../components/HeaderChatBox";
-import FooterChatBox from "../components/FooterChatBox";
 import LeftSideChatProfile from "../components/LeftSideChatProfile";
 import LeftSideImage from "../components/LeftSideImage";
 import LeftSidedocx from "../components/LeftSidedocx";
 import TypeAnimation from "../components/TypeAnimation";
-// import { TypingAnimation } from 'react-native-typing-animation';
+import * as DocumentPicker from "expo-document-picker";
+
 
 const GroupChat = ({ route }) => {
   console.log("hello");
@@ -27,28 +27,82 @@ const GroupChat = ({ route }) => {
   const scrollViewRef = useRef();
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [isManualScrolling, setIsManualScrolling] = useState(false);
-
   const [msg, setMsg] = useState("");
-
   const [sending, setSending] = useState(false);
   const [menu, setMenu] = useState(false);
   const [genType, setGenType] = useState("");
-  
   const [loadingAnimation, setLoadingAnimation] = useState(false);
+  const [pickedFile, setPickedFile] = useState(null);
   const ws = new WebSocket(`wss://api.ilmoirfan.com/ws/chat/${grpId}/`);
 
-  const index = 0;
-  let flag = 0;
+  const pickFile = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+
+      console.log("Selected file:", res);
+      if (res != null || res != undefined) {
+        setPickedFile(res);
+
+
+      }
+    } catch (err) {
+      console.log("Document picking failed", err);
+    }
+  };
+
+  useEffect(() => {
+    if (pickedFile) {
+      sendMessage();
+    }
+  }, [pickedFile]);
+
+  console.log(pickedFile);
   const sendMessage = () => {
-   
-    // setNewMessage([...newMessage, msg]);
     setLoadingAnimation(true);
     console.log(ws.readyState);
     setSending(false);
-    //console.log(ws.readyState);
-    //"chat_with_ai"
+
     if (ws.readyState === 0) {
       ws.onopen = () => {
+        if (pickedFile && pickedFile.assets && pickedFile.assets.length > 0) {
+          const fileName = pickedFile.assets[0].name.split(".")[0];
+          ws.send(
+            JSON.stringify({
+              command: "upload_attachment",
+              chatId: grpId,
+              sender: senderId,
+              file_name: fileName,
+              file_extension: `docx`,
+              text: "what is Quality Engg",
+            })
+          );
+        } else {
+          ws.send(
+            JSON.stringify({
+              command: genType === "IMAGE" ? "generate_image" : "chat_with_ai",
+              chatId: grpId,
+              text: msg,
+              sender: senderId,
+            })
+          );
+        }
+      };
+    } else {
+      if (pickedFile && pickedFile.assets && pickedFile.assets.length > 0) {
+        const fileName = pickedFile.assets[0].name.split(".")[0];
+        ws.send(
+          JSON.stringify({
+            command: "upload_attachment",
+            chatId: grpId,
+            sender: senderId,
+            file_name: fileName,
+            file_extension: `docx`,
+            text: "what is Quality Enggsss",
+          })
+        );
+      } else {
         ws.send(
           JSON.stringify({
             command: genType === "IMAGE" ? "generate_image" : "chat_with_ai",
@@ -57,23 +111,14 @@ const GroupChat = ({ route }) => {
             sender: senderId,
           })
         );
-      };
-    } else {
-      ws.send(
-        JSON.stringify({
-          command: genType === "IMAGE" ? "generate_image" : "chat_with_ai",
-          chatId: grpId,
-          text: msg,
-          sender: senderId,
-        })
-      );
+      }
     }
   };
   useEffect(() => {
     ws.onmessage = (event) => {
       const response = JSON.parse(event.data);
       setLoading(false);
-
+      setPickedFile(null)
       console.log(response);
       if (response.message === undefined) {
         setSocketData((prevSocketData) => [
@@ -90,13 +135,9 @@ const GroupChat = ({ route }) => {
           response.message,
         ]);
 
-        if(response.message.sender !== senderId){
+        if (response.message.sender !== senderId) {
           setLoadingAnimation(false);
         }
-
-        
-
-       
       }
 
       if (autoScrollEnabled && !isManualScrolling && scrollViewRef.current) {
@@ -188,7 +229,6 @@ const GroupChat = ({ route }) => {
     },
   };
 
-  //  console.log(senderId);
   return (
     <ImageBackground
       source={require("../assets/chatwall.png")}
@@ -255,22 +295,17 @@ const GroupChat = ({ route }) => {
               );
             }
 
-
-            
-
             return (
               <View style={{ marginVertical: 10 }} key={index}>
                 {componentToRender}
               </View>
             );
           })}
-
-          
         </ScrollView>
       )}
 
-      {loadingAnimation ?  <TypeAnimation/> : <View></View>}
-      
+      {loadingAnimation ? <TypeAnimation /> : <View></View>}
+
       <SafeAreaView
         style={{
           marginTop: 5,
@@ -358,7 +393,18 @@ const GroupChat = ({ route }) => {
               style={styles.input}
               className={`w-full  ${genType != "" ? "pl-28" : "pl-5"}  pr-5`}
             />
-               <Ionicons style={styles.cameraIcon} name="document-outline" size={23} color="white" />
+            <TouchableOpacity
+              onPress={() => {
+                pickFile();
+              }}
+            >
+              <Ionicons
+                style={styles.cameraIcon}
+                name="document-outline"
+                size={23}
+                color="white"
+              />
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
                 sendMessage();
@@ -376,7 +422,6 @@ const GroupChat = ({ route }) => {
                 <FontAwesome name="send" size={20} color="white" />
               )}
             </TouchableOpacity>
-         
           </View>
 
           <Image
@@ -394,4 +439,3 @@ const GroupChat = ({ route }) => {
 };
 
 export default GroupChat;
-//<FooterChatBox avatar={img} grpId={grpId} senderId={senderId}  />}
