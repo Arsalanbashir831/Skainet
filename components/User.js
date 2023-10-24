@@ -7,9 +7,7 @@ const User = ({username,img,lastText,date,seen}) => {
   return (
       
     <View style={{backgroundColor:'rgba(0,0,0,0.3)'}}>
-      <View style={{width:'100%', backgroundColor:'white',height:'0.5%'}}>
-    <Text></Text>
-   </View>
+    
    <View style={{padding:9}}>
    <View style={{flex:1, flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
      <View style={{flex:1, flexDirection:'row',alignItems:'center' ,gap:45}}>

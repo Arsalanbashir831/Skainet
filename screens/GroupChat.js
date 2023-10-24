@@ -17,11 +17,17 @@ import LeftSideImage from "../components/LeftSideImage";
 import LeftSidedocx from "../components/LeftSidedocx";
 import TypeAnimation from "../components/TypeAnimation";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
+import { Base64 } from "expo-asset";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { FlatList } from "react-native-web";
+
 
 
 const GroupChat = ({ route }) => {
-  console.log("hello");
-  const { header, img, senderId, grpId } = route.params;
+  // console.log("hello");
+  const { header, img, senderId, grpId ,token } = route.params;
   const [socketData, setSocketData] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef();
@@ -33,6 +39,10 @@ const GroupChat = ({ route }) => {
   const [genType, setGenType] = useState("");
   const [loadingAnimation, setLoadingAnimation] = useState(false);
   const [pickedFile, setPickedFile] = useState(null);
+  const [fileContent , setFileContent] = useState("")
+  const [docRef , setDocRef] = useState(null)
+  const [contextDocs , setContextDocs] = useState("")
+  const [selectedAttachment , setSelectedAttachment] = useState("")
   const ws = new WebSocket(`wss://api.ilmoirfan.com/ws/chat/${grpId}/`);
 
   const pickFile = async () => {
@@ -40,45 +50,105 @@ const GroupChat = ({ route }) => {
       const res = await DocumentPicker.getDocumentAsync({
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
-
+  
       console.log("Selected file:", res);
-      if (res != null || res != undefined) {
-        setPickedFile(res);
-
-
-      }
+      setPickedFile(res);
+        const formData = new FormData();
+        formData.append('file', {
+          uri: res.assets[0].uri,
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // or the appropriate mime type
+          name: res.assets[0].name
+        });
+  
+        try {
+          let response = await fetch('https://api.ilmoirfan.com/chats/upload_attachment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            
+            },
+            body: formData,
+          });
+          let json = await response.json();
+          setFileContent(json.data.file_text)
+          // console.log(json.data.file_text);
+        } catch (error) {
+          console.error("Error occurred during fetch:", error);
+        }
+  
+    
     } catch (err) {
       console.log("Document picking failed", err);
     }
   };
+ 
+  useEffect(() => {
+    const fetchAttachment = async () => {
+      try {
+        const docsRes = await axios.get(`https://api.ilmoirfan.com/chats/get_attachments/${grpId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        //  console.log(docsRes.data); // Assuming the data you need is in docsRes.data
+        setDocRef(docsRes.data.attachments)
+      } catch (error) {
+        console.error("Error fetching attachments:", error);
+      }
+    };
+    fetchAttachment();
+  }, [docRef]);
+  
 
   useEffect(() => {
-    if (pickedFile) {
-      sendMessage();
+    if (pickedFile && fileContent != "") {
+      sendMessage(fileContent);
     }
-  }, [pickedFile]);
+  }, [pickedFile ,fileContent]);
 
-  console.log(pickedFile);
-  const sendMessage = () => {
+
+  
+  const sendMessage = (content) => {
+   if (msg != "" || pickedFile!=null) {
+    
+   
     setLoadingAnimation(true);
     console.log(ws.readyState);
     setSending(false);
 
     if (ws.readyState === 0) {
       ws.onopen = () => {
-        if (pickedFile && pickedFile.assets && pickedFile.assets.length > 0) {
-          const fileName = pickedFile.assets[0].name.split(".")[0];
+
+        if(contextDocs != ""){
           ws.send(
             JSON.stringify({
-              command: "upload_attachment",
-              chatId: grpId,
-              sender: senderId,
-              file_name: fileName,
-              file_extension: `docx`,
-              text: "what is Quality Engg",
-            })
+            "command": "query_on_attachment", 
+            "sender": senderId,
+             "chatId": grpId, 
+             "attachment_id": selectedAttachment,
+            "query": `@${contextDocs}${" "+msg}`
+          })
           );
-        } else {
+         
+        }
+        else if (pickedFile && pickedFile.assets && pickedFile.assets.length > 0 ) {
+            const fileName = pickedFile.assets[0].name.split(".")[0];
+            ws.send(
+              JSON.stringify({
+                command: "upload_attachment",
+                chatId: grpId,
+                sender: senderId,
+                file_name: fileName,
+                file_extension: `docx`,
+                text: content.length > 500 ? "can not  summarize the docs more than 500 words . docs should be less than 500 words":content,
+              })
+            );
+          
+         
+        }
+        
+        
+        else {
           ws.send(
             JSON.stringify({
               command: genType === "IMAGE" ? "generate_image" : "chat_with_ai",
@@ -89,19 +159,32 @@ const GroupChat = ({ route }) => {
           );
         }
       };
-    } else {
-      if (pickedFile && pickedFile.assets && pickedFile.assets.length > 0) {
-        const fileName = pickedFile.assets[0].name.split(".")[0];
+    } 
+    else {
+      if(contextDocs != ""){
         ws.send(
           JSON.stringify({
-            command: "upload_attachment",
-            chatId: grpId,
-            sender: senderId,
-            file_name: fileName,
-            file_extension: `docx`,
-            text: "what is Quality Enggsss",
-          })
+          "command": "query_on_attachment", 
+          "sender": senderId,
+           "chatId": grpId, 
+           "attachment_id": selectedAttachment,
+          "query": `@+${contextDocs}+${msg}`
+        })
         );
+       
+      }
+      else if (pickedFile && pickedFile.assets && pickedFile.assets.length > 0) {
+            const fileName = pickedFile.assets[0].name.split(".")[0];
+            ws.send(
+              JSON.stringify({
+                command: "upload_attachment",
+                chatId: grpId,
+                sender: senderId,
+                file_name: fileName,
+                file_extension: `docx`,
+                text: content.length > 500 ? "can not  summarize the docs more than 500 words . docs should be less than 500 words":content,
+              })
+            );
       } else {
         ws.send(
           JSON.stringify({
@@ -113,12 +196,17 @@ const GroupChat = ({ route }) => {
         );
       }
     }
+  }else{
+    alert("Please enter the message ")
+  }
   };
   useEffect(() => {
     ws.onmessage = (event) => {
       const response = JSON.parse(event.data);
       setLoading(false);
-      setPickedFile(null)
+      setPickedFile(null);
+      setFileContent("")
+      setContextDocs("")
       console.log(response);
       if (response.message === undefined) {
         setSocketData((prevSocketData) => [
@@ -126,10 +214,6 @@ const GroupChat = ({ route }) => {
           ...response.messages,
         ]);
       } else {
-        console.log("MEWOOOOOOOOOOOOOOOOOOOOOOOOO");
-
-        console.log(response.message);
-
         setSocketData((prevSocketData) => [
           ...prevSocketData,
           response.message,
@@ -146,11 +230,9 @@ const GroupChat = ({ route }) => {
     };
   }, []);
 
-  const data = [];
 
-  // useEffect(()=>{
-  //   setNewMessage([...newMessage, sendMessage])
-  // }, [sendMessage])
+
+
   useEffect(() => {
     ws.onopen = () => {
       ws.send(
@@ -163,6 +245,7 @@ const GroupChat = ({ route }) => {
     };
   }, []);
 
+  
   const handleScroll = (event) => {
     const yOffset = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
@@ -205,37 +288,43 @@ const GroupChat = ({ route }) => {
       padding: 1,
       paddingHorizontal: 9,
       paddingVertical: 3,
+      position:'absolute',
+      left:10,
+      bottom:-10,
+      
     },
     input: {
       flex: 1,
       height: 40,
       borderColor: "gray",
       borderWidth: 2,
-      borderRadius: 20,
+      borderRadius: 10,
       fontSize: 16,
       marginLeft: 10,
       marginRight: 10,
-
       color: "white",
+      
     },
     sendButton: {
       padding: 5,
       position: "absolute",
       right: 70,
     },
-    cameraIcon: {
+    sendIcon: {
       padding: 5,
       paddingRight: 15,
     },
   };
-
+  //  console.log(token);
+// console.log(contextDocs , msg);
   return (
-    <ImageBackground
-      source={require("../assets/chatwall.png")}
-      style={{
-        height: "100%",
-      }}
-    >
+    // <ImageBackground
+    //   source={require("../assets/chatwall.png")}
+    //   style={{
+    //     height: "100%",
+    //   }}
+    // >
+    <View className='bg-black h-[100%]'>
       <HeaderChatBox header={header} img={img} />
       {loading ? (
         <ActivityIndicator
@@ -306,16 +395,52 @@ const GroupChat = ({ route }) => {
 
       {loadingAnimation ? <TypeAnimation /> : <View></View>}
 
+
+
       <SafeAreaView
         style={{
           marginTop: 5,
           padding: 10,
-          backgroundColor:
-            "linear-gradient(164deg, rgba(24,24,32,0.8) 0%, rgba(37,37,54,0.2) 96%)",
+          
         }}
       >
         {menu && (
+          <View>
+
+         <View>
+         <Text className='text-white p-3 text-lg'>Documents</Text>     
+   
+
+          <ScrollView className='h-28' style={styles.menu}>
+           
+            {
+              docRef?.map((option, index) => (
+              <React.Fragment key={option.id}>
+                {option.id > 0 && <Text style={styles.separator}></Text>}
+                <TouchableOpacity
+                  onPress={() => {
+                    // setMsg(option.label);
+                    setContextDocs(option.name)
+                    setGenType(`${option.name.slice(0,2)}.docx`)
+                    setSelectedAttachment(option.id)
+                    setMenu(false);
+                  }}
+                >
+                {option.name.split(".")[0].length >= 15 ?(<>
+                  <Text style={styles.menuItem}>{option.name.split(".")[0].slice(0,15)+"......"+option.name.split(".")[1]}</Text>
+                </>):(<>
+                  <Text style={styles.menuItem}>{option.name}</Text>
+                </>)}
+                </TouchableOpacity>
+              </React.Fragment>
+            ))}
+            
+          </ScrollView>
+         
+          </View>
+
           <View style={styles.menu}>
+          <Text className='text-white p-3 text-lg'>Generation Type</Text>
             {[
               { label: "@SKAI", type: "SKAI" },
               { label: "@IMAGE", type: "IMAGE" },
@@ -331,8 +456,11 @@ const GroupChat = ({ route }) => {
                 >
                   <Text style={styles.menuItem}>{option.label}</Text>
                 </TouchableOpacity>
+             
               </React.Fragment>
             ))}
+            
+          </View>
           </View>
         )}
 
@@ -343,26 +471,26 @@ const GroupChat = ({ route }) => {
             flexDirection: "row",
             alignItems: "center",
             paddingHorizontal: 10,
-            backgroundColor:
-              "linear-gradient(164deg, rgba(24,24,32,0.8) 0%, rgba(37,37,54,0.2) 96%)",
+          
           }}
         >
           <View
-            style={{ flexDirection: "row", alignItems: "center", width: "90%" }}
+            style={{ flexDirection: "row", alignItems: "center", width: "100%" }}
           >
             {/* <AntDesign name="pluscircleo" size={40} color="white" /> */}
-            <TouchableOpacity
+            <TouchableOpacity className='z-20'
               onPress={() => {
                 setMenu(!menu);
               }}
             >
-              <Text style={styles.menuTrigger}>@</Text>
+              <Image   source={require("../assets/tag.png")}/>
             </TouchableOpacity>
             <View
               style={{
                 zIndex: 50,
                 position: "absolute",
-                left: 50,
+                left: 30,
+                top:25,
                 flexDirection: "row",
               }}
             >
@@ -381,6 +509,8 @@ const GroupChat = ({ route }) => {
 
             <TextInput
               value={msg}
+              placeholder="Enter Message"
+              placeholderTextColor={'white'}
               onChangeText={(text) => {
                 if (text.includes("@")) {
                   setMenu(true);
@@ -391,19 +521,15 @@ const GroupChat = ({ route }) => {
                 setMsg(text);
               }}
               style={styles.input}
-              className={`w-full  ${genType != "" ? "pl-28" : "pl-5"}  pr-5`}
+              className={`w-full  ${genType != "" ? "pl-28" : "pl-10"}  pr-5`}
             />
             <TouchableOpacity
               onPress={() => {
                 pickFile();
               }}
             >
-              <Ionicons
-                style={styles.cameraIcon}
-                name="document-outline"
-                size={23}
-                color="white"
-              />
+            <FontAwesome   style={styles.sendIcon} name="plus-square-o" size={24} color="white" />
+          
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
@@ -411,30 +537,24 @@ const GroupChat = ({ route }) => {
                 setMsg("");
                 setGenType("");
               }}
-              style={styles.cameraIcon}
-              disabled={sending} // Disable the button while sending is true
+              style={styles.sendIcon}
+              disabled={sending} 
             >
               {sending ? (
-                // Show a loading indicator while sending
+                
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                // Show the send button when not sending
+                
                 <FontAwesome name="send" size={20} color="white" />
               )}
             </TouchableOpacity>
           </View>
 
-          <Image
-            style={{
-              borderRadius: 15,
-              width: 40, // Adjust the size as needed
-              height: 40, // Adjust the size as needed
-            }}
-            source={{ uri: img }}
-          />
+          
         </View>
       </SafeAreaView>
-    </ImageBackground>
+      </View>
+    // </ImageBackground> 
   );
 };
 

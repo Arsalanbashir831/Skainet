@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { View, Text, Image, StyleSheet } from 'react-native';
 
@@ -11,9 +12,16 @@ export default LeftSideChatProfile = ({ lastText, img, type }) => {
         // Render this block if 'type' is 'bot'
         <>
           <Image style={{ width: "13%", height: 50 }} source={require('../assets/ball.png')} />
-          <View style={styles.containerBot}>
+          {/* <View style={styles.containerBot}> */}
+          <LinearGradient
+         style={styles.containerBot}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          colors={["#8222CD", "#1B69DD"]}
+        >
             <Text style={{ color: 'white' }}>{lastText}</Text>
-          </View>
+        </LinearGradient>
+          {/* </View> */}
         </>
       ) : (
         // Render this block if 'type' is not 'bot'
@@ -31,8 +39,8 @@ export default LeftSideChatProfile = ({ lastText, img, type }) => {
 const styles = StyleSheet.create({
   containerDefault: {
     padding: 10,
-    backgroundColor: '#5F6368', // Default background color
-    borderColor: '#5F6368',
+    backgroundColor: '#3D3F47', // Default background color
+    borderColor: '#3D3F47',
     borderWidth: 2,
     maxWidth: '70%',
     minHeight: '5%',

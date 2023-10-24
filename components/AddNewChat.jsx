@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, ImageBackground, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ImageBackground, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator,Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons'; 
+import { Platform } from 'react-native';
 
-const NewChat = ({ navigation, route }) => {
-  const { userId } = route.params;
+const AddNewChat = ({ userId }) => {
+  
   const [title, setTitle] = useState('');
   const [socketData, setSocketData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +28,9 @@ const NewChat = ({ navigation, route }) => {
       const response = JSON.parse(event.data);
       setSocketData(response.message);
       setIsLoading(false); // Set loading to false when chat is created
-      navigation.navigate('ChatList')
+      setTitle("")
+    //  navigation.navigate('ChatList')
+    
     };
 
     ws.onclose = () => {
@@ -43,66 +48,74 @@ const NewChat = ({ navigation, route }) => {
   }
 
   return (
-    <ImageBackground
-      source={require("../assets/chatwall.png")}
-      style={styles.container}
-    >
-      <Text style={styles.title}>Add New Chat</Text>
-      <View style={styles.inputContainer}>
+   
+    <View  style={styles.container}>
+      <LinearGradient colors={['#1D1D1F', '#1D1D1F']} style={styles.inputContainer}>
+        <TouchableOpacity  style={styles.iconContainer}>
+          <Text className='border-r border-[#98989F] rounded-md' style={styles.iconText}><Image source={require("../assets/tag.png")}></Image></Text>
+        </TouchableOpacity>
         <TextInput
-          placeholder='Enter the Title of Chat'
+          placeholder='Send a message'
           style={styles.input}
           onChangeText={(text) => { setTitle(text) }}
+          placeholderTextColor={'#DEDEDE80'}
+          value={title}
         />
-      </View>
+      </LinearGradient>
       <TouchableOpacity onPress={handleCreateChat} style={styles.createButton}>
         {isLoading ? (
           <ActivityIndicator size="small" color="white" />
         ) : (
-          <Text style={styles.createButtonText}>Create Chat</Text>
+          <Feather name="send" size={20} color="white" />
         )}
       </TouchableOpacity>
-    </ImageBackground>
+    </View>
+    
+   
   );
 };
-
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    height: '100%',
-    width: '100%',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 8,
+    marginTop: 20,
+    padding:10
   },
   inputContainer: {
-    width: '80%',
-    backgroundColor: 'white',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1C1C1E',
     padding: 10,
     borderRadius: 8,
-    marginTop: 20,
+  },
+  iconContainer: {
+    paddingHorizontal: 5,
+  },
+  iconText: {
+    color: 'purple',
+    
+    fontSize: 20,
+    fontWeight: 'bold',
+   padding:9,
+   
+   paddingHorizontal:15,
+   position:'absolute',
+   top:-20,left:-10
   },
   input: {
-    width: '100%',
+    flex: 1,
     fontSize: 16,
+    color: 'white',
+    paddingHorizontal: 50,
   },
   createButton: {
-    backgroundColor: 'black',
+    backgroundColor: 'rgba(41, 41, 46, 1)',
     padding: 10,
-    marginTop: 20,
-    borderRadius: 8,
-  },
-  createButtonText: {
-    color: 'white',
-    fontSize: 16,
-    textAlign: 'center',
+    marginLeft: 10,
+    borderRadius: 25,
   },
 });
 
-export default NewChat;
+export default AddNewChat;

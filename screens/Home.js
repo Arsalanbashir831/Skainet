@@ -1,12 +1,13 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, Image, ImageBackground,TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, Image, ImageBackground, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect } from "react";
 import { useNavigation } from '@react-navigation/native';
 import Logo from "../components/Logo";
-export default Home = () => {
 
+const Home = () => {
   const navigation = useNavigation();
+  
   return (
     <>
       <ImageBackground
@@ -14,36 +15,44 @@ export default Home = () => {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          height: "102%",
+          height: "100%",
         }}
         source={require("../assets/wallpaper.png")}
       >
         <View
-          className="flex-1 items-center justify-top "
-          style={{ maxHeight: "30%" }}
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "flex-start",
+            maxHeight: "30%",
+          }}
         >
           <Logo />
         </View>
 
         <View
-          className="flex-1 items-center justify "
-          style={{ maxHeight: "20%", alignContent : 'center', paddingLeft :'2%', paddingRight : '2%' }}
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            maxHeight: "20%",
+            paddingLeft: '2%',
+            paddingRight: '2%',
+          }}
         >
-          <Text
-            style={{ paddingLeft: "10%", paddingRight: "10%" ,  alignSelf :'center', textAlign :'center'}}
-            className="text-3xl antialiased text-white"
-          >
-            {" "}
-            Easily Connect with your family, friends and work through skainet{" "}
+          <Text style={{ fontSize: 25, color: 'white', textAlign: 'center' }} className="text-3xl antialiased">
+            The Future of Connection. AI-Powered Chat for Family, Friends, and Co-workers.
           </Text>
-          <TouchableOpacity onPress={()=>{navigation.navigate('Login')}} className=" rounded-md m-5  w-[50%] self-center ">
+          <View style={{ backgroundColor: 'white', width: 50, height: 2, marginTop: 10, marginBottom: 10 }}></View>
+          <TouchableOpacity onPress={() => { navigation.navigate('Login') }} style={{ borderRadius: 10, margin: 20, width: '70%', alignSelf: 'center' }}>
             <LinearGradient
+              style={{ borderRadius: 20, paddingLeft: 10, paddingRight: 10, paddingTop: 5, paddingBottom: 5, width: 200 }}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              colors={["#3f5efb", "#fc466b"]}
+              colors={["#1B69DD", "#8222CD"]}
             >
-              <Text className="text-center text-white font-bold text-xl  p-2 pl-4 pr-4">
-                Get Started
+              <Text style={{ textAlign: 'center', color: 'white', fontWeight: 'bold', fontSize: 20, padding: 5, paddingLeft: 40, paddingRight: 40 }}>
+                Continue
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -53,11 +62,4 @@ export default Home = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+export default Home;
