@@ -11,6 +11,7 @@ import ChatBox from './screens/ChatBox';
 import GroupChat from './screens/GroupChat';
 import SignUp from './screens/SignUp';
 import NewChat from './screens/NewChat';
+import AddNewCollaborators from './screens/AddNewCollaborators';
 
 const Stack = createNativeStackNavigator();
 
@@ -34,6 +35,7 @@ export default function App() {
         <Stack.Screen name="GroupChat" component={GroupChat} />
         <Stack.Screen name="ChatBox" component={ChatBox} />
         <Stack.Screen name="NewChat" component={NewChat} />
+        <Stack.Screen name="AddNewCollaborators" component={AddNewCollaborators} />
       </Stack.Navigator>
     </NavigationContainer>
   );

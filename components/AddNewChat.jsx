@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ImageBackground, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator,Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons'; 
@@ -10,10 +10,26 @@ const AddNewChat = ({ userId }) => {
   const [socketData, setSocketData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleCreateChat = () => {
-    setIsLoading(true); // Set loading to true while creating chat
+  function generateRandomAlphaNumeric() {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    for (let i = 0; i < 16; i++) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result
+}
 
-    const ws = new WebSocket("wss://api.ilmoirfan.com/ws/chat/abc/");
+
+
+  const handleCreateChat = () => {
+    if (title !='') {
+      
+    let random = generateRandomAlphaNumeric()
+    // console.log(random);
+    // now generate the random alphanumeric character 
+    setIsLoading(true); // Set loading to true while creating chat
+    const ws = new WebSocket(`wss://api.ilmoirfan.com/ws/chat/${random}/`);
     ws.onopen = () => {
       ws.send(
         JSON.stringify({
@@ -44,16 +60,20 @@ const AddNewChat = ({ userId }) => {
 
     return () => {
       ws.close();
-    };
+    }; 
+  }
+  else{
+    alert('Cannot send the empty message')
+  }
   }
 
   return (
    
     <View  style={styles.container}>
       <LinearGradient colors={['#1D1D1F', '#1D1D1F']} style={styles.inputContainer}>
-        <TouchableOpacity  style={styles.iconContainer}>
+        {/* <TouchableOpacity  style={styles.iconContainer}>
           <Text className='border-r border-[#98989F] rounded-md' style={styles.iconText}><Image source={require("../assets/tag.png")}></Image></Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TextInput
           placeholder='Send a message'
           style={styles.input}
@@ -108,7 +128,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: 'white',
-    paddingHorizontal: 50,
+    paddingHorizontal: 10,
   },
   createButton: {
     backgroundColor: 'rgba(41, 41, 46, 1)',

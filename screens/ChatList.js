@@ -14,6 +14,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AddNewChat from "../components/AddNewChat";
+import ChatListHeader from "../components/ChatListHeader";
 
 const ChatList = ({ navigation }) => {
   const [userData, setUserData] = useState([]);
@@ -60,27 +61,7 @@ const ChatList = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#1C1C1E" }}>
-      <View
-        className="flex flex-row justify-between"
-        style={{ paddingHorizontal: 20, paddingTop: 50, paddingBottom: 10 }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Image
-            style={{ width: 40, height: 40 }}
-            source={require("../assets/ball.png")}
-          />
-          <Text style={{ color: "white", fontSize: 24, fontWeight: "bold" }}>
-            Sk
-            <Text style={{ color: "purple" }}>ai</Text>net
-          </Text>
-        </View>
-        <View>
-          <View className="border border-white p-2 rounded-3xl ">
-            <SimpleLineIcons name="options" size={15} color="white" />
-          </View>
-        </View>
-      </View>
-
+    <ChatListHeader/>
       <View style={{ paddingHorizontal: 20, paddingTop: 10, marginBottom: 20 }}>
         <MaterialIcons
           style={{ position: "absolute", top: 30, left: 30, zIndex: 100 }}

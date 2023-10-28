@@ -10,24 +10,20 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
+  Modal,
 } from "react-native";
-import HeaderChatBox from "../components/HeaderChatBox";
+
 import LeftSideChatProfile from "../components/LeftSideChatProfile";
 import LeftSideImage from "../components/LeftSideImage";
 import LeftSidedocx from "../components/LeftSidedocx";
 import TypeAnimation from "../components/TypeAnimation";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
-import { Base64 } from "expo-asset";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import { FlatList } from "react-native-web";
-
-
+import GroupChatHeader from '../components/GroupChatHeader'
 
 const GroupChat = ({ route }) => {
-  // console.log("hello");
-  const { header, img, senderId, grpId ,token } = route.params;
+
+  const { header, img, senderId, grpId, token } = route.params;
   const [socketData, setSocketData] = useState([]);
   const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef();
@@ -36,102 +32,129 @@ const GroupChat = ({ route }) => {
   const [msg, setMsg] = useState("");
   const [sending, setSending] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [genType, setGenType] = useState("");
+  const [genType, setGenType] = useState("new_message");
   const [loadingAnimation, setLoadingAnimation] = useState(false);
   const [pickedFile, setPickedFile] = useState(null);
-  const [fileContent , setFileContent] = useState("")
-  const [docRef , setDocRef] = useState(null)
-  const [contextDocs , setContextDocs] = useState("")
-  const [selectedAttachment , setSelectedAttachment] = useState("")
+  const [fileContent, setFileContent] = useState("");
+  const [docRef, setDocRef] = useState(null);
+  const [contextDocs, setContextDocs] = useState("");
+  const [selectedAttachment, setSelectedAttachment] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [collaborators , setCollaborators] = useState(null)
+  const [tag,setTag] =useState([])
   const ws = new WebSocket(`wss://api.ilmoirfan.com/ws/chat/${grpId}/`);
+
+
+  useEffect(()=>{
+    const fetchMembers = async () => {
+      try {
+        const response = await axios.get(`https://api.ilmoirfan.com/chats/get_collaborators/${grpId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        //apperbuild@gmail.com
+      
+        // console.log(response.data.collaborators); 
+setCollaborators(response.data.collaborators)
+      } catch (error) {
+        // Handle errors here
+        console.error(error);
+      }
+    };
+
+    fetchMembers()
+  },[collaborators])
+  const members = collaborators
 
   const pickFile = async () => {
     try {
       const res = await DocumentPicker.getDocumentAsync({
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
-  
+
       console.log("Selected file:", res);
       setPickedFile(res);
-        const formData = new FormData();
-        formData.append('file', {
-          uri: res.assets[0].uri,
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // or the appropriate mime type
-          name: res.assets[0].name
-        });
-  
-        try {
-          let response = await fetch('https://api.ilmoirfan.com/chats/upload_attachment', {
-            method: 'POST',
+      const formData = new FormData();
+      formData.append("file", {
+        uri: res.assets[0].uri,
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // or the appropriate mime type
+        name: res.assets[0].name,
+      });
+
+      try {
+        let response = await fetch(
+          "https://api.ilmoirfan.com/chats/upload_attachment",
+          {
+            method: "POST",
             headers: {
-              'Content-Type': 'multipart/form-data',
-            
+              "Content-Type": "multipart/form-data",
             },
             body: formData,
-          });
-          let json = await response.json();
-          setFileContent(json.data.file_text)
-          // console.log(json.data.file_text);
-        } catch (error) {
-          console.error("Error occurred during fetch:", error);
-        }
-  
-    
+          }
+        );
+        let json = await response.json();
+        setFileContent(json.data.file_text);
+        // console.log(json.data.file_text);
+      } catch (error) {
+        console.error("Error occurred during fetch:", error);
+      }
     } catch (err) {
       console.log("Document picking failed", err);
     }
   };
- 
+
   useEffect(() => {
     const fetchAttachment = async () => {
       try {
-        const docsRes = await axios.get(`https://api.ilmoirfan.com/chats/get_attachments/${grpId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const docsRes = await axios.get(
+          `https://api.ilmoirfan.com/chats/get_attachments/${grpId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
         //  console.log(docsRes.data); // Assuming the data you need is in docsRes.data
-        setDocRef(docsRes.data.attachments)
+        setDocRef(docsRes.data.attachments);
       } catch (error) {
         console.error("Error fetching attachments:", error);
       }
     };
     fetchAttachment();
   }, [docRef]);
-  
 
   useEffect(() => {
     if (pickedFile && fileContent != "") {
       sendMessage(fileContent);
     }
-  }, [pickedFile ,fileContent]);
+  }, [pickedFile, fileContent]);
 
-
-  
   const sendMessage = (content) => {
-   if (msg != "" || pickedFile!=null) {
-    
-   
-    setLoadingAnimation(true);
-    console.log(ws.readyState);
-    setSending(false);
+    if (msg != "" || pickedFile != null ) {
+      if(genType!='new_message'){
+        setLoadingAnimation(true);
+      }
+      console.log(ws.readyState);
+      setSending(false);
 
-    if (ws.readyState === 0) {
-      ws.onopen = () => {
-
-        if(contextDocs != ""){
-          ws.send(
-            JSON.stringify({
-            "command": "query_on_attachment", 
-            "sender": senderId,
-             "chatId": grpId, 
-             "attachment_id": selectedAttachment,
-            "query": `@${contextDocs}${" "+msg}`
-          })
-          );
-         
-        }
-        else if (pickedFile && pickedFile.assets && pickedFile.assets.length > 0 ) {
+      if (ws.readyState === 0) {
+        ws.onopen = () => {
+          if (contextDocs != "") {
+            ws.send(
+              JSON.stringify({
+                command: "query_on_attachment",
+                sender: senderId,
+                chatId: grpId,
+                attachment_id: selectedAttachment,
+                query: `@${contextDocs}${" " + msg}`,
+              })
+            );
+          } else if (
+            pickedFile &&
+            pickedFile.assets &&
+            pickedFile.assets.length > 0
+          ) {
             const fileName = pickedFile.assets[0].name.split(".")[0];
             ws.send(
               JSON.stringify({
@@ -140,73 +163,77 @@ const GroupChat = ({ route }) => {
                 sender: senderId,
                 file_name: fileName,
                 file_extension: `docx`,
-                text: content.length > 500 ? "can not  summarize the docs more than 500 words . docs should be less than 500 words":content,
+                text:
+                  content.length > 500
+                    ? "can not  summarize the docs more than 500 words . docs should be less than 500 words"
+                    : content,
               })
             );
-          
-         
-        }
-        
-        
-        else {
+          } else {
+            ws.send(
+              JSON.stringify({
+                command:
+                genType === "IMAGE" ? "generate_image" : genType === "Skai" ? "chat_with_ai":"new_message",
+                chatId: grpId,
+                text: tag.length===0? msg:tag.toString()+" "+msg,
+                sender: senderId,
+              })
+            );
+          }
+        };
+      } else {
+        if (contextDocs != "") {
           ws.send(
             JSON.stringify({
-              command: genType === "IMAGE" ? "generate_image" : "chat_with_ai",
+              command: "query_on_attachment",
+              sender: senderId,
               chatId: grpId,
-              text: msg,
+              attachment_id: selectedAttachment,
+              query: `@+${contextDocs}+${msg}`,
+            })
+          );
+        } else if (
+          pickedFile &&
+          pickedFile.assets &&
+          pickedFile.assets.length > 0
+        ) {
+          const fileName = pickedFile.assets[0].name.split(".")[0];
+          ws.send(
+            JSON.stringify({
+              command: "upload_attachment",
+              chatId: grpId,
+              sender: senderId,
+              file_name: fileName,
+              file_extension: `docx`,
+              text:
+                content.length > 500
+                  ? "can not  summarize the docs more than 500 words . docs should be less than 500 words"
+                  : content,
+            })
+          );
+        } else {
+          ws.send(
+            JSON.stringify({
+              command:  genType === "IMAGE" ? "generate_image" : genType === "Skai" ? "chat_with_ai":"new_message",
+              chatId: grpId,
+              text: tag.length===0? msg:tag.toString()+" "+msg,
               sender: senderId,
             })
           );
         }
-      };
-    } 
-    else {
-      if(contextDocs != ""){
-        ws.send(
-          JSON.stringify({
-          "command": "query_on_attachment", 
-          "sender": senderId,
-           "chatId": grpId, 
-           "attachment_id": selectedAttachment,
-          "query": `@+${contextDocs}+${msg}`
-        })
-        );
-       
       }
-      else if (pickedFile && pickedFile.assets && pickedFile.assets.length > 0) {
-            const fileName = pickedFile.assets[0].name.split(".")[0];
-            ws.send(
-              JSON.stringify({
-                command: "upload_attachment",
-                chatId: grpId,
-                sender: senderId,
-                file_name: fileName,
-                file_extension: `docx`,
-                text: content.length > 500 ? "can not  summarize the docs more than 500 words . docs should be less than 500 words":content,
-              })
-            );
-      } else {
-        ws.send(
-          JSON.stringify({
-            command: genType === "IMAGE" ? "generate_image" : "chat_with_ai",
-            chatId: grpId,
-            text: msg,
-            sender: senderId,
-          })
-        );
-      }
+    } else {
+      alert("Please enter the message ");
     }
-  }else{
-    alert("Please enter the message ")
-  }
   };
   useEffect(() => {
     ws.onmessage = (event) => {
       const response = JSON.parse(event.data);
       setLoading(false);
+      setTag([])
       setPickedFile(null);
-      setFileContent("")
-      setContextDocs("")
+      setFileContent("");
+      setContextDocs("");
       console.log(response);
       if (response.message === undefined) {
         setSocketData((prevSocketData) => [
@@ -230,9 +257,6 @@ const GroupChat = ({ route }) => {
     };
   }, []);
 
-
-
-
   useEffect(() => {
     ws.onopen = () => {
       ws.send(
@@ -245,7 +269,6 @@ const GroupChat = ({ route }) => {
     };
   }, []);
 
-  
   const handleScroll = (event) => {
     const yOffset = event.nativeEvent.contentOffset.y;
     const contentHeight = event.nativeEvent.contentSize.height;
@@ -284,26 +307,26 @@ const GroupChat = ({ route }) => {
       fontSize: 17,
       fontWeight: "bold",
       borderRadius: 10,
-      backgroundColor: "black",
+      backgroundColor: "#a700b3",
       padding: 1,
       paddingHorizontal: 9,
       paddingVertical: 3,
-      position:'absolute',
-      left:10,
-      bottom:-10,
-      
+      position: "absolute",
+      left: 10,
+      bottom: -10,
     },
     input: {
       flex: 1,
       height: 40,
-      borderColor: "gray",
+      borderColor: "#1C1C1E",
       borderWidth: 2,
       borderRadius: 10,
       fontSize: 16,
       marginLeft: 10,
       marginRight: 10,
       color: "white",
-      
+      backgroundColor:"#1C1C1E"
+
     },
     sendButton: {
       padding: 5,
@@ -311,21 +334,135 @@ const GroupChat = ({ route }) => {
       right: 70,
     },
     sendIcon: {
-      padding: 5,
-      paddingRight: 15,
+      padding: 6,
+      paddingHorizontal:10,
+  
     },
   };
-  //  console.log(token);
-// console.log(contextDocs , msg);
+  const handleTag = (member) => {
+    setTag([...new Set([...tag, member])]);
+  };
+  
+//  console.log(tag);
   return (
-    // <ImageBackground
-    //   source={require("../assets/chatwall.png")}
-    //   style={{
-    //     height: "100%",
-    //   }}
-    // >
-    <View className='bg-black h-[100%]'>
-      <HeaderChatBox header={header} img={img} />
+
+    <View className="bg-black h-[100%]">
+      {visible ? (
+        <>
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={visible}
+            onRequestClose={() => {
+              // handle the close action here
+              setVisible(false);
+            }}
+          >
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
+              }}
+            >
+              <View
+                style={{
+                  margin: 50,
+                  backgroundColor: "#1c1c1c",
+                  borderRadius: 13,
+                  padding: 20,
+                  alignItems: "center",
+                  shadowColor: "#000",
+                  shadowOffset: {
+                    width: 0,
+                    height: 2,
+                  },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                  elevation: 5,
+                }}
+              >
+                <Text
+                  style={{
+                    marginBottom: 15,
+                    fontSize: 18,
+                    fontWeight: "bold",
+                    color: "white",
+                  }}
+                >
+                  Choose an Option
+                </Text>
+                <TouchableOpacity onPress={()=>{
+                pickFile()
+                setVisible(false)
+                }}
+                  style={{
+                    padding: 15,
+                    width: "100%",
+                    borderBottomColor: "#dcdcdc",
+                    borderBottomWidth: 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: "#ffff",
+                      textAlign: "center",
+                    }}
+                  >
+                    Upload Document
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    padding: 15,
+                    width: "100%",
+                    borderBottomColor: "#dcdcdc",
+                    borderBottomWidth: 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: "#ffff",
+                      textAlign: "center",
+                    }}
+                  >
+                    Upload Image
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setVisible(false);
+                  }}
+                  style={{
+                    marginTop: 15,
+                  }}
+                >
+                  <Text
+                    style={[
+                      {
+                        fontSize: 16,
+                        color: "#ffff",
+                        textAlign: "center",
+                      },
+                      { color: "red" },
+                    ]}
+                  >
+                    Close
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </>
+      ) : (
+      <></>
+      )}
+      {/* <ModalDocs visible={true}/> */}
+      {/* <HeaderChatBox header={header} img={img} /> */}
+      <GroupChatHeader header={header} img={img} members={members} token={token} grpId={grpId} handleTag ={handleTag} />
       {loading ? (
         <ActivityIndicator
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
@@ -395,72 +532,74 @@ const GroupChat = ({ route }) => {
 
       {loadingAnimation ? <TypeAnimation /> : <View></View>}
 
-
-
       <SafeAreaView
         style={{
           marginTop: 5,
           padding: 10,
-          
         }}
       >
+        {/* {isModal?(<>
+      <ModalDocs visible={true}/>
+      </>):<></>} */}
+
         {menu && (
-          <View>
+          <View className="bg-[#1c1c1c]">
+            <View>
+              <Text className="text-white p-3 text-lg">Documents</Text>
 
-         <View>
-         <Text className='text-white p-3 text-lg'>Documents</Text>     
-   
-
-          <ScrollView className='h-28' style={styles.menu}>
-           
-            {
-              docRef?.map((option, index) => (
-              <React.Fragment key={option.id}>
-                {option.id > 0 && <Text style={styles.separator}></Text>}
-                <TouchableOpacity
-                  onPress={() => {
-                    // setMsg(option.label);
-                    setContextDocs(option.name)
-                    setGenType(`${option.name.slice(0,2)}.docx`)
-                    setSelectedAttachment(option.id)
-                    setMenu(false);
-                  }}
-                >
-                {option.name.split(".")[0].length >= 15 ?(<>
-                  <Text style={styles.menuItem}>{option.name.split(".")[0].slice(0,15)+"......"+option.name.split(".")[1]}</Text>
-                </>):(<>
-                  <Text style={styles.menuItem}>{option.name}</Text>
-                </>)}
-                </TouchableOpacity>
-              </React.Fragment>
-            ))}
+              <ScrollView className="h-28" style={styles.menu}>
+                {docRef?.map((option, index) => (
+                  <React.Fragment key={option.id}>
+                    {option.id > 0 && <Text style={styles.separator}></Text>}
+                    <TouchableOpacity
+                      onPress={() => {
+                        // setMsg(option.label);
+                        setContextDocs(option.name);
+                        setGenType(`${option.name.slice(0, 2)}.docx`);
+                        setSelectedAttachment(option.id);
+                        setMenu(false);
+                      }}
+                    >
+                      {option.name.split(".")[0].length >= 15 ? (
+                        <>
+                          <Text style={styles.menuItem}>
+                            {option.name.split(".")[0].slice(0, 15) +
+                              "......" +
+                              option.name.split(".")[1]}
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text style={styles.menuItem}>{option.name}</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </React.Fragment>
+                ))}
+              </ScrollView>
+            </View>
             
-          </ScrollView>
-         
-          </View>
-
-          <View style={styles.menu}>
-          <Text className='text-white p-3 text-lg'>Generation Type</Text>
-            {[
-              { label: "@SKAI", type: "SKAI" },
-              { label: "@IMAGE", type: "IMAGE" },
-            ].map((option, index) => (
-              <React.Fragment key={index}>
-                {index > 0 && <Text style={styles.separator}></Text>}
-                <TouchableOpacity
-                  onPress={() => {
-                    // setMsg(option.label);
-                    setGenType(option.type);
-                    setMenu(false);
-                  }}
-                >
-                  <Text style={styles.menuItem}>{option.label}</Text>
-                </TouchableOpacity>
-             
-              </React.Fragment>
-            ))}
-            
-          </View>
+            <View style={styles.menu}>
+              <Text className="text-white p-3 text-lg">Generation Type</Text>
+              {[
+                { label: "@SKAI", type: "SKAI" },
+                { label: "@IMAGE", type: "IMAGE" },
+              ].map((option, index) => (
+                <React.Fragment key={index}>
+                  {index > 0 && <Text style={styles.separator}></Text>}
+                  <TouchableOpacity
+                    onPress={() => {
+                      // setMsg(option.label);
+                      setGenType(option.type);
+                      setMenu(false);
+                    }}
+                  >
+                  
+                    <Text style={styles.menuItem}>{option.label}</Text>
+                  </TouchableOpacity>
+                </React.Fragment>
+              ))}
+            </View>
           </View>
         )}
 
@@ -471,30 +610,34 @@ const GroupChat = ({ route }) => {
             flexDirection: "row",
             alignItems: "center",
             paddingHorizontal: 10,
-          
           }}
         >
           <View
-            style={{ flexDirection: "row", alignItems: "center", width: "100%" }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              width: "100%",
+            }}
           >
             {/* <AntDesign name="pluscircleo" size={40} color="white" /> */}
-            <TouchableOpacity className='z-20'
+            <TouchableOpacity
+              className="z-20"
               onPress={() => {
                 setMenu(!menu);
               }}
             >
-              <Image   source={require("../assets/tag.png")}/>
+              <Image source={require("../assets/tag.png")} />
             </TouchableOpacity>
             <View
               style={{
                 zIndex: 50,
                 position: "absolute",
                 left: 30,
-                top:25,
+                top: 25,
                 flexDirection: "row",
               }}
             >
-              {genType != "" && (
+              {genType != "new_message"  && (
                 <>
                   <TouchableOpacity
                     onPress={() => {
@@ -510,7 +653,7 @@ const GroupChat = ({ route }) => {
             <TextInput
               value={msg}
               placeholder="Enter Message"
-              placeholderTextColor={'white'}
+              placeholderTextColor={"white"}
               onChangeText={(text) => {
                 if (text.includes("@")) {
                   setMenu(true);
@@ -521,40 +664,40 @@ const GroupChat = ({ route }) => {
                 setMsg(text);
               }}
               style={styles.input}
-              className={`w-full  ${genType != "" ? "pl-28" : "pl-10"}  pr-5`}
+              className={`w-full  ${genType != "new_message" ? "pl-28" : "pl-10"}  pr-5`}
             />
             <TouchableOpacity
               onPress={() => {
-                pickFile();
+                setVisible(true)
               }}
             >
-            <FontAwesome   style={styles.sendIcon} name="plus-square-o" size={24} color="white" />
-          
+              <FontAwesome
+                style={styles.sendIcon}
+                name="plus-square-o"
+                size={24}
+                color="white"
+              />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
                 sendMessage();
                 setMsg("");
-                setGenType("");
+                setGenType("new_message");
               }}
               style={styles.sendIcon}
-              disabled={sending} 
+              disabled={sending}
             >
               {sending ? (
-                
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                
                 <FontAwesome name="send" size={20} color="white" />
               )}
             </TouchableOpacity>
           </View>
-
-          
         </View>
       </SafeAreaView>
-      </View>
-    // </ImageBackground> 
+    </View>
+    // </ImageBackground>
   );
 };
 
