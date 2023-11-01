@@ -53,16 +53,18 @@ const styles = StyleSheet.create({
   },
   containerBot: {
     padding: 10,
-    backgroundColor: 'black', // Background color for 'bot' type
-    borderColor: 'black', // You can customize this color
-    borderWidth: 2,
+    backgroundColor: '#2979FF', // Background color for 'bot' type
+    
+    borderWidth: 1,
     maxWidth: '70%',
     minHeight: '5%',
-    borderTopRightRadius: 10,
-    borderTopLeftRadius: 10,
-    borderBottomEndRadius: 10,
+    borderTopRightRadius: 20, // Keep the original value for the right border radius
+    borderTopLeftRadius: 10, // Increase the left border radius
+    borderBottomRightRadius: 20, // Keep the original value for the right bottom radius
+    borderBottomLeftRadius: 0, // Increase the left bottom radius
     flex: 1,
     flexDirection: 'row',
     gap: 3,
   },
+  
 });

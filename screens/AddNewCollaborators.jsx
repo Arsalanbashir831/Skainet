@@ -5,10 +5,12 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from "expo-linear-gradient";
 
 
-const AddNewCollaborators = ({ route }) => {
+const AddNewCollaborators = ({ route , handleMember}) => {
     const {grpId,token} = route.params
+    
     const [email, setEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+   
     const navigation = useNavigation()
 
     const handleAddCollaborator = async () => {
@@ -26,6 +28,7 @@ const AddNewCollaborators = ({ route }) => {
             const response = await axios.post(url, body, config);
             console.log(response.data); 
             setIsLoading(false);
+   
             navigation.goBack();
         } catch (error) {
             console.error(error);

@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/sn_logo-removebg-preview.png",
+      "image": "./assets/splash_skai.jpeg",
       "resizeMode": "contain",
       "backgroundColor": "#000000" 
     },

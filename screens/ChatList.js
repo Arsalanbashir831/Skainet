@@ -113,45 +113,7 @@ const ChatList = ({ navigation }) => {
         )}
       />
 
-      {/* <View
-        style={{
-          height: 80,
-          paddingHorizontal: 20,
-          paddingVertical: 15,
-          backgroundColor: "#262948",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <FontAwesome5 name="user-alt" size={24} color="white" />
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate("NewChat", {
-              userId: userData.id,
-            });
-          }}
-          style={{
-            borderWidth: 1,
-            backgroundColor: "#1C1C1E",
-            borderRadius: 30,
-            borderColor: "white",
-            padding: 10,
-            flexDirection: "row",
-            alignItems: "center",
-          }}
-        >
-          <Image
-            style={{ width: 20, height: 20 }}
-            source={require("../assets/plusIcon.png")}
-          />
-          <Text style={{ color: "white", paddingLeft: 10 }}>New Chat </Text>
-        </TouchableOpacity>
-        <Image
-          style={{ width: 45, height: 45, borderRadius: 50 }}
-          source={{ uri: userData.avatar }}
-        />
-      </View> */}
+   
       <View className='absolute bottom-10 w-full'>
       <AddNewChat userId ={userData.id}/>
       </View>

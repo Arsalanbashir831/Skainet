@@ -19,10 +19,9 @@ import LeftSidedocx from "../components/LeftSidedocx";
 import TypeAnimation from "../components/TypeAnimation";
 import * as DocumentPicker from "expo-document-picker";
 import axios from "axios";
-import GroupChatHeader from '../components/GroupChatHeader'
+import GroupChatHeader from "../components/GroupChatHeader";
 
 const GroupChat = ({ route }) => {
-
   const { header, img, senderId, grpId, token } = route.params;
   const [socketData, setSocketData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,32 +39,52 @@ const GroupChat = ({ route }) => {
   const [contextDocs, setContextDocs] = useState("");
   const [selectedAttachment, setSelectedAttachment] = useState("");
   const [visible, setVisible] = useState(false);
-  const [collaborators , setCollaborators] = useState(null)
-  const [tag,setTag] =useState([])
-  const ws = new WebSocket(`wss://api.ilmoirfan.com/ws/chat/${grpId}/`);
-
-
-  useEffect(()=>{
-    const fetchMembers = async () => {
-      try {
-        const response = await axios.get(`https://api.ilmoirfan.com/chats/get_collaborators/${grpId}`, {
+  const [collaborators, setCollaborators] = useState(null);
+  const [tag, setTag] = useState([]);
+  const [singleTag, setSingleTag] = useState("");
+  
+  const ws = new WebSocket(`wss://api.ilmoirfan.com/ws/chat/${grpId}/`); 
+  const fetchMembers = async () => {
+    try {
+      const response = await axios.get(
+        `https://api.ilmoirfan.com/chats/get_collaborators/${grpId}`,
+        {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        //apperbuild@gmail.com
-      
-        // console.log(response.data.collaborators); 
-setCollaborators(response.data.collaborators)
-      } catch (error) {
-        // Handle errors here
-        console.error(error);
-      }
-    };
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setCollaborators(response.data.collaborators);
+    } catch (error) {
+      // Handle errors here
+      console.error(error);
+    }
+  };
 
-    fetchMembers()
-  },[collaborators])
-  const members = collaborators
+  const fetchAttachment = async () => {
+    try {
+      const docsRes = await axios.get(
+        `https://api.ilmoirfan.com/chats/get_attachments/${grpId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      //  console.log(docsRes.data); // Assuming the data you need is in docsRes.data
+      setDocRef(docsRes.data.attachments);
+      
+    } catch (error) {
+      console.error("Error fetching attachments:", error);
+    }
+  };
+
+  const members = collaborators;
+  useEffect(() => {
+      fetchMembers();
+      fetchAttachment();
+  },[]);
+  // console.log(docRef);
 
   const pickFile = async () => {
     try {
@@ -96,6 +115,7 @@ setCollaborators(response.data.collaborators)
         let json = await response.json();
         setFileContent(json.data.file_text);
         // console.log(json.data.file_text);
+        fetchAttachment()
       } catch (error) {
         console.error("Error occurred during fetch:", error);
       }
@@ -104,25 +124,7 @@ setCollaborators(response.data.collaborators)
     }
   };
 
-  useEffect(() => {
-    const fetchAttachment = async () => {
-      try {
-        const docsRes = await axios.get(
-          `https://api.ilmoirfan.com/chats/get_attachments/${grpId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        //  console.log(docsRes.data); // Assuming the data you need is in docsRes.data
-        setDocRef(docsRes.data.attachments);
-      } catch (error) {
-        console.error("Error fetching attachments:", error);
-      }
-    };
-    fetchAttachment();
-  }, [docRef]);
+ 
 
   useEffect(() => {
     if (pickedFile && fileContent != "") {
@@ -131,8 +133,9 @@ setCollaborators(response.data.collaborators)
   }, [pickedFile, fileContent]);
 
   const sendMessage = (content) => {
-    if (msg != "" || pickedFile != null ) {
-      if(genType!='new_message'){
+
+    if (msg != "" || pickedFile != null) {
+      if (genType != "new_message") {
         setLoadingAnimation(true);
       }
       console.log(ws.readyState);
@@ -140,6 +143,7 @@ setCollaborators(response.data.collaborators)
 
       if (ws.readyState === 0) {
         ws.onopen = () => {
+          
           if (contextDocs != "") {
             ws.send(
               JSON.stringify({
@@ -173,15 +177,23 @@ setCollaborators(response.data.collaborators)
             ws.send(
               JSON.stringify({
                 command:
-                genType === "IMAGE" ? "generate_image" : genType === "Skai" ? "chat_with_ai":"new_message",
+                  genType === "IMAGE"
+                    ? "generate_image"
+                    : genType === "SKAI"
+                    ? "chat_with_ai"
+                    : "new_message",
                 chatId: grpId,
-                text: tag.length===0? msg:tag.toString()+" "+msg,
+                text:
+                  tag.length === 0
+                    ? singleTag + " " + msg
+                    : tag.toString() +" "+ msg,
                 sender: senderId,
               })
             );
           }
         };
       } else {
+       
         if (contextDocs != "") {
           ws.send(
             JSON.stringify({
@@ -214,9 +226,15 @@ setCollaborators(response.data.collaborators)
         } else {
           ws.send(
             JSON.stringify({
-              command:  genType === "IMAGE" ? "generate_image" : genType === "Skai" ? "chat_with_ai":"new_message",
+              command:
+                genType === "IMAGE"
+                  ? "generate_image"
+                  : genType === "SKAI"
+                  ? "chat_with_ai"
+                  : "new_message",
               chatId: grpId,
-              text: tag.length===0? msg:tag.toString()+" "+msg,
+              text:
+                tag.length === 0 ? singleTag + " " + msg : tag.toString()+" " + msg,
               sender: senderId,
             })
           );
@@ -228,13 +246,17 @@ setCollaborators(response.data.collaborators)
   };
   useEffect(() => {
     ws.onmessage = (event) => {
+      fetchAttachment()
+      fetchMembers()
       const response = JSON.parse(event.data);
       setLoading(false);
-      setTag([])
+      setTag([]);
+      setSingleTag("");
       setPickedFile(null);
       setFileContent("");
       setContextDocs("");
       console.log(response);
+     
       if (response.message === undefined) {
         setSocketData((prevSocketData) => [
           ...prevSocketData,
@@ -325,8 +347,7 @@ setCollaborators(response.data.collaborators)
       marginLeft: 10,
       marginRight: 10,
       color: "white",
-      backgroundColor:"#1C1C1E"
-
+      backgroundColor: "#1C1C1E",
     },
     sendButton: {
       padding: 5,
@@ -335,17 +356,15 @@ setCollaborators(response.data.collaborators)
     },
     sendIcon: {
       padding: 6,
-      paddingHorizontal:10,
-  
+      paddingHorizontal: 10,
     },
   };
   const handleTag = (member) => {
     setTag([...new Set([...tag, member])]);
   };
-  
-//  console.log(tag);
-  return (
 
+  // console.log(tag);
+  return (
     <View className="bg-black h-[100%]">
       {visible ? (
         <>
@@ -393,10 +412,11 @@ setCollaborators(response.data.collaborators)
                 >
                   Choose an Option
                 </Text>
-                <TouchableOpacity onPress={()=>{
-                pickFile()
-                setVisible(false)
-                }}
+                <TouchableOpacity
+                  onPress={() => {
+                    pickFile();
+                    setVisible(false);
+                  }}
                   style={{
                     padding: 15,
                     width: "100%",
@@ -458,11 +478,20 @@ setCollaborators(response.data.collaborators)
           </Modal>
         </>
       ) : (
-      <></>
+        <></>
       )}
       {/* <ModalDocs visible={true}/> */}
       {/* <HeaderChatBox header={header} img={img} /> */}
-      <GroupChatHeader header={header} img={img} members={members} token={token} grpId={grpId} handleTag ={handleTag} />
+      <GroupChatHeader
+        header={header}
+        img={img}
+        members={members}
+        token={token}
+        grpId={grpId}
+        handleTag={handleTag}
+        tagArr={tag}
+        ws={ws}
+      />
       {loading ? (
         <ActivityIndicator
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
@@ -544,46 +573,87 @@ setCollaborators(response.data.collaborators)
 
         {menu && (
           <View className="bg-[#1c1c1c]">
-            <View>
-              <Text className="text-white p-3 text-lg">Documents</Text>
+            {members?.length != 0 ? (
+              <>
+                <View>
+                  <Text  className="text-white p-3 text-lg">Collaborators</Text>
 
-              <ScrollView className="h-28" style={styles.menu}>
-                {docRef?.map((option, index) => (
-                  <React.Fragment key={option.id}>
-                    {option.id > 0 && <Text style={styles.separator}></Text>}
-                    <TouchableOpacity
-                      onPress={() => {
-                        // setMsg(option.label);
-                        setContextDocs(option.name);
-                        setGenType(`${option.name.slice(0, 2)}.docx`);
-                        setSelectedAttachment(option.id);
-                        setMenu(false);
-                      }}
-                    >
-                      {option.name.split(".")[0].length >= 15 ? (
-                        <>
+                  <ScrollView className="h-28" style={styles.menu}>
+                    {members?.map((option, index) => (
+                      <React.Fragment key={index}>
+                        {option.id > 0 && (
+                          <Text style={styles.separator}></Text>
+                        )}
+                        <TouchableOpacity
+                          onPress={() => {
+                            // setMsg(option.label);
+                            setGenType(`new_message`);
+                            setSingleTag("@" + option.full_name);
+                            setMenu(false);
+                          }}
+                        >
                           <Text style={styles.menuItem}>
-                            {option.name.split(".")[0].slice(0, 15) +
-                              "......" +
-                              option.name.split(".")[1]}
+                            {option.full_name}
                           </Text>
-                        </>
-                      ) : (
-                        <>
-                          <Text style={styles.menuItem}>{option.name}</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </React.Fragment>
-                ))}
-              </ScrollView>
-            </View>
-            
+                        </TouchableOpacity>
+                      </React.Fragment>
+                    ))}
+                  </ScrollView>
+                </View>
+              </>
+            ) : (
+              <></>
+            )}
+
+            {docRef?.length != 0 ? (
+              <>
+                <View>
+                  <Text className="text-white p-3 text-lg">Documents</Text>
+
+                  <ScrollView className="h-28" style={styles.menu}>
+                    {docRef?.map((option, index) => (
+                      <React.Fragment key={option.id}>
+                        {option.id > 0 && (
+                          <Text style={styles.separator}></Text>
+                        )}
+                        <TouchableOpacity
+                          onPress={() => {
+                            // setMsg(option.label);
+                            setContextDocs(option.name);
+                            setGenType(`${option.name.slice(0, 2)}.docx`);
+                            setSelectedAttachment(option.id);
+                            setMenu(false);
+                          }}
+                        >
+                          {option.name.split(".")[0].length >= 15 ? (
+                            <>
+                              <Text style={styles.menuItem}>
+                                {option.name.split(".")[0].slice(0, 15) +
+                                  "......" +
+                                  option.name.split(".")[1]}
+                              </Text>
+                            </>
+                          ) : (
+                            <>
+                              <Text style={styles.menuItem}>{option.name}</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </React.Fragment>
+                    ))}
+                  </ScrollView>
+                </View>
+              </>
+            ) : (
+              <></>
+            )}
+
             <View style={styles.menu}>
               <Text className="text-white p-3 text-lg">Generation Type</Text>
               {[
                 { label: "@SKAI", type: "SKAI" },
                 { label: "@IMAGE", type: "IMAGE" },
+                { label: "Simple Chat", type: "new_message" },
               ].map((option, index) => (
                 <React.Fragment key={index}>
                   {index > 0 && <Text style={styles.separator}></Text>}
@@ -594,7 +664,6 @@ setCollaborators(response.data.collaborators)
                       setMenu(false);
                     }}
                   >
-                  
                     <Text style={styles.menuItem}>{option.label}</Text>
                   </TouchableOpacity>
                 </React.Fragment>
@@ -637,16 +706,20 @@ setCollaborators(response.data.collaborators)
                 flexDirection: "row",
               }}
             >
-              {genType != "new_message"  && (
+              {genType !== "new_message" ? (
                 <>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setMenu(!menu);
-                    }}
-                  >
-                    <Text style={styles.menuTrigger}>{"@ " + genType}</Text>
-                  </TouchableOpacity>
+               
+                <TouchableOpacity onPress={() => setMenu(!menu)}>
+                  <Text style={styles.menuTrigger}>{"@ " + genType}</Text>
+                </TouchableOpacity>
                 </>
+              ) : (
+              
+                <TouchableOpacity onPress={() => setMenu(!menu)}>
+                  <Text style={ singleTag!=""? styles.menuTrigger:""}>
+                    {singleTag.slice(0, 6)}
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
 
@@ -664,11 +737,13 @@ setCollaborators(response.data.collaborators)
                 setMsg(text);
               }}
               style={styles.input}
-              className={`w-full  ${genType != "new_message" ? "pl-28" : "pl-10"}  pr-5`}
+              className={`w-full  ${
+                genType != "new_message"  || singleTag!=''? "pl-28" : "pl-10"
+              }  pr-5`}
             />
             <TouchableOpacity
               onPress={() => {
-                setVisible(true)
+                setVisible(true);
               }}
             >
               <FontAwesome

@@ -4,15 +4,16 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from '@react-navigation/native';
 import { AntDesign } from '@expo/vector-icons'; 
 
-const GroupChatHeader = ({ header, img, members,token,grpId ,handleTag }) => {
+const GroupChatHeader = ({ header, img, members,token,grpId ,handleTag ,tagArr,ws}) => {
   const navigation = useNavigation();
   const addToTag = (member) => {
     handleTag(member);
+    console.log(tagArr);
   };
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => { navigation.goBack(null) }}>
+        <TouchableOpacity style={styles.backButton} onPress={() => { navigation.goBack(null);ws.close() }}>
           <MaterialIcons name="arrow-back" size={25} color="white" />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
@@ -29,7 +30,8 @@ const GroupChatHeader = ({ header, img, members,token,grpId ,handleTag }) => {
           </View>
           <TouchableOpacity onPress={()=>{navigation.navigate("AddNewCollaborators",{
             grpId:grpId,
-            token:token
+            token:token,
+            members:members
           })}}>
           <AntDesign style={{paddingHorizontal:30}} name="plussquare" size={24} color="white" />
           </TouchableOpacity>
@@ -41,7 +43,8 @@ const GroupChatHeader = ({ header, img, members,token,grpId ,handleTag }) => {
         data={members}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => addToTag("@ "+item.full_name)}>
+          
+          <TouchableOpacity  onPress={() => addToTag("@"+item.full_name)}>
           <View style={styles.memberContainer}>
             <Image style={styles.memberImage} source={{ uri: item.avatar }} />
             <Text style={styles.memberName}>{item.full_name}</Text>
